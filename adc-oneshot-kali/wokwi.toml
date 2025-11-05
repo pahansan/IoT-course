@@ -1,0 +1,5 @@
+[wokwi]
+version = 1
+firmware = './build/adc-oneshot-kali.bin'
+elf = './build/adc-oneshot-kali.elf'
+

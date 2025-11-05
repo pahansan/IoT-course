@@ -1,0 +1,5 @@
+[wokwi]
+version = 1
+firmware = './build/adc-tds.bin'
+elf = './build/adc-tds.elf'
+
