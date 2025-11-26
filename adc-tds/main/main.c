@@ -52,6 +52,10 @@ void app_main(void) {
       ESP_ERROR_CHECK(
           adc_cali_raw_to_voltage(adc_calibration_handle, adc_raw, &voltage));
       sensor_voltage = 1e-3 * voltage / (1.0 + 0.02 * (TEMPERATURE - 25.0));
+      sensor_voltage -= 0.142;
+      // if (sensor_voltage <= 0.143) {
+      //   sensor_voltage = 0;
+      // }
       sensor_tds =
           (133.42 * sensor_voltage * sensor_voltage * sensor_voltage -
            255.86 * sensor_voltage * sensor_voltage + 857.39 * sensor_voltage) *

@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {
+        "builder": "esp-idf"
+      }
+    },
+    {
+      "type": "wokwi-mpu6050",
+      "id": "imu1",
+      "top": 90.22,
+      "left": 213.52,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-lcd1602",
+      "id": "lcd1",
+      "top": -41.6,
+      "left": 552.8,
+      "attrs": {
+        "pins": "i2c"
+      }
+    },
+    {
+      "type": "board-ili9341-cap-touch",
+      "id": "lcd2",
+      "top": -325.64,
+      "left": 316.42,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "imu1:SCL",
+      "esp:22",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "imu1:SDA",
+      "esp:21",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "imu1:GND",
+      "esp:GND.2",
+      "black",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "imu1:VCC",
+      "esp:3V3",
+      "red",
+      [
+        "v-153.6",
+        "h-287.92"
+      ]
+    ],
+    [
+      "lcd1:VCC",
+      "esp:3V3",
+      "red",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "lcd1:GND",
+      "esp:GND.2",
+      "black",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "lcd1:SDA",
+      "esp:21",
+      "green",
+      [
+        "h-355.2",
+        "v67.4"
+      ]
+    ],
+    [
+      "lcd1:SCL",
+      "esp:22",
+      "green",
+      [
+        "h-403.2",
+        "v29.1"
+      ]
+    ],
+    [
+      "lcd2:VCC",
+      "esp:3V3",
+      "red",
+      [
+        "v0",
+        "h-345.6"
+      ]
+    ],
+    [
+      "lcd2:GND",
+      "esp:GND.2",
+      "black",
+      [
+        "v28.8",
+        "h-259.2"
+      ]
+    ],
+    [
+      "lcd2:SCL",
+      "esp:22",
+      "green",
+      [
+        "v0"
+      ]
+    ],
+    [
+      "lcd2:SDA",
+      "esp:21",
+      "green",
+      [
+        "v0"
+      ]
+    ]
+  ],
+  "dependencies": {}
+}
