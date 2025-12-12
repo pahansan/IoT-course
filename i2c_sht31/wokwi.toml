@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = './build/i2c_sht31.bin'
+elf = './build/i2c_sht31.elf'

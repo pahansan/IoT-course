@@ -1,0 +1,812 @@
+==> ./main/data/page.html <==
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>RGB LED Controller</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+    <!-- cache-busting with hashes -->
+    <link rel="stylesheet" href="style.css?v=e54f9b30" />
+    <script src="script.js?v=a75ca2b2" defer></script>
+</head>
+
+<body>
+    <div class="page">
+        <div class="card">
+            <header class="card-header">
+                <h1 class="title">RGB LED</h1>
+                <p class="subtitle">Control over Wi-Fi</p>
+            </header>
+
+            <section class="preview-section">
+                <div class="preview-label-row">
+                    <span>Preview</span>
+                    <span id="hex" class="hex">#000000</span>
+                </div>
+                <div id="preview" class="preview"></div>
+            </section>
+
+            <section class="picker-section">
+                <label for="colorPicker" class="picker-label">Color picker</label>
+                <input type="color" id="colorPicker" class="color-input" />
+            </section>
+
+            <section class="sliders">
+                <div class="slider">
+                    <div class="slider-header">
+                        <span>Red</span>
+                        <span id="val-r">0</span>
+                    </div>
+                    <input type="range" id="r" min="0" max="255" value="0">
+                </div>
+
+                <div class="slider">
+                    <div class="slider-header">
+                        <span>Green</span>
+                        <span id="val-g">0</span>
+                    </div>
+                    <input type="range" id="g" min="0" max="255" value="0">
+                </div>
+
+                <div class="slider">
+                    <div class="slider-header">
+                        <span>Blue</span>
+                        <span id="val-b">0</span>
+                    </div>
+                    <input type="range" id="b" min="0" max="255" value="0">
+                </div>
+            </section>
+
+            <section class="buttons">
+                <button id="apply" class="btn primary">Apply</button>
+                <button id="off" class="btn danger">Turn off</button>
+            </section>
+
+            <div id="status" class="status">Ready</div>
+        </div>
+    </div>
+</body>
+
+</html>
+==> ./main/data/script.js <==
+function toHex(v) {
+  const h = Number(v).toString(16).toUpperCase();
+  return h.length === 1 ? "0" + h : h;
+}
+
+function hexToRgb(hex) {
+  if (!hex || hex[0] !== "#") return { r: 0, g: 0, b: 0 };
+
+  if (hex.length === 4) {
+    const r = hex[1] + hex[1];
+    const g = hex[2] + hex[2];
+    const b = hex[3] + hex[3];
+    return {
+      r: parseInt(r, 16),
+      g: parseInt(g, 16),
+      b: parseInt(b, 16),
+    };
+  }
+
+  if (hex.length === 7) {
+    return {
+      r: parseInt(hex.substr(1, 2), 16),
+      g: parseInt(hex.substr(3, 2), 16),
+      b: parseInt(hex.substr(5, 2), 16),
+    };
+  }
+
+  return { r: 0, g: 0, b: 0 };
+}
+
+function updatePreviewFromSliders() {
+  const r = document.getElementById("r").value;
+  const g = document.getElementById("g").value;
+  const b = document.getElementById("b").value;
+
+  document.getElementById("val-r").textContent = r;
+  document.getElementById("val-g").textContent = g;
+  document.getElementById("val-b").textContent = b;
+
+  const rgb = `rgb(${r}, ${g}, ${b})`;
+  const preview = document.getElementById("preview");
+  preview.style.background = rgb;
+  preview.style.boxShadow = `0 0 30px rgba(${r},${g},${b},0.7)`;
+
+  const hex = "#" + toHex(r) + toHex(g) + toHex(b);
+  const hexEl = document.getElementById("hex");
+  if (hexEl.textContent !== hex) {
+    hexEl.textContent = hex;
+  }
+
+  const picker = document.getElementById("colorPicker");
+  if (picker && picker.value.toUpperCase() !== hex) {
+    picker.value = hex;
+  }
+}
+
+function updateSlidersFromRgb(r, g, b) {
+  document.getElementById("r").value = r;
+  document.getElementById("g").value = g;
+  document.getElementById("b").value = b;
+  updatePreviewFromSliders();
+}
+
+function updateSlidersFromHex(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  updateSlidersFromRgb(r, g, b);
+}
+
+function sendColor(r, g, b) {
+  const status = document.getElementById("status");
+  status.textContent = "Sending...";
+
+  fetch(`/set?r=${r}&g=${g}&b=${b}`)
+    .then((res) => res.text())
+    .then((text) => {
+      status.textContent = text.trim() || "OK";
+    })
+    .catch(() => {
+      status.textContent = "Connection error";
+    });
+}
+
+function loadInitialColor() {
+  fetch("/get")
+    .then((res) => res.json())
+    .then((data) => {
+      if (
+        typeof data.r === "number" &&
+        typeof data.g === "number" &&
+        typeof data.b === "number"
+      ) {
+        updateSlidersFromRgb(data.r, data.g, data.b);
+      } else {
+        updatePreviewFromSliders();
+      }
+    })
+    .catch(() => {
+      document.getElementById("status").textContent =
+        "Failed to retrieve state";
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  ["r", "g", "b"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", () => {
+      updatePreviewFromSliders();
+    });
+  });
+
+  const picker = document.getElementById("colorPicker");
+  if (picker) {
+    picker.addEventListener("input", (e) => {
+      updateSlidersFromHex(e.target.value);
+    });
+  }
+
+  document.getElementById("apply").addEventListener("click", (e) => {
+    e.preventDefault();
+    const r = document.getElementById("r").value;
+    const g = document.getElementById("g").value;
+    const b = document.getElementById("b").value;
+    sendColor(r, g, b);
+  });
+
+  document.getElementById("off").addEventListener("click", (e) => {
+    e.preventDefault();
+    updateSlidersFromRgb(0, 0, 0);
+    sendColor(0, 0, 0);
+  });
+
+  loadInitialColor();
+});
+
+==> main/data/style.css <==
+:root {
+    --bg-body: #050816;
+    --bg-card: rgba(15, 23, 42, 0.96);
+    --border-card: rgba(148, 163, 184, 0.35);
+    --accent: #38bdf8;
+    --accent-soft: rgba(56, 189, 248, 0.16);
+    --danger: #ef4444;
+    --text-main: #e5e7eb;
+    --text-muted: #9ca3af;
+    --radius-lg: 18px;
+    --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.85);
+}
+
+/* ---------- Layout ---------- */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.25), transparent 55%),
+        radial-gradient(circle at bottom, rgba(94, 234, 212, 0.2), transparent 55%),
+        var(--bg-body);
+    color: var(--text-main);
+}
+
+.page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+/* ---------- Card ---------- */
+
+.card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-card);
+    box-shadow: var(--shadow-soft);
+    padding: 16px 16px 18px;
+}
+
+/* ---------- Header ---------- */
+
+.card-header {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.title {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: 0.03em;
+}
+
+.subtitle {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* ---------- Preview ---------- */
+
+.preview-section {
+    margin-bottom: 14px;
+}
+
+.preview-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.hex {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 13px;
+    color: var(--text-main);
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+.preview {
+    width: 100%;
+    height: 110px;
+    border-radius: 14px;
+    background: #000;
+    box-shadow: 0 0 26px rgba(15, 23, 42, 0.7);
+    transition: box-shadow 0.18s ease-out, transform 0.18s ease-out, background 0.15s ease-out;
+}
+
+.preview:active {
+    transform: scale(0.99);
+}
+
+/* ---------- Color picker ---------- */
+
+.picker-section {
+    margin-bottom: 14px;
+}
+
+.picker-label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.color-input {
+    width: 100%;
+    height: 38px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: #020617;
+    padding: 6px 10px;
+}
+
+/* ---------- Sliders ---------- */
+
+.sliders {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.slider {
+    width: 100%;
+}
+
+.slider-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.slider-header span:last-child {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-main);
+}
+
+/* Base range input styling (mobile friendly) */
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 24px;
+    background: transparent;
+    margin: 0;
+}
+
+/* Track */
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 999px;
+}
+
+input[type="range"]::-moz-range-track {
+    height: 6px;
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 999px;
+}
+
+/* Thumb */
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #0b1220;
+    margin-top: -6px;
+    /* center thumb on track */
+    box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #0b1220;
+    box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+/* ---------- Buttons ---------- */
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.btn {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, background 0.15s ease-out, opacity 0.1s;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.8);
+}
+
+.btn:active {
+    transform: translateY(1px) scale(0.99);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.8);
+}
+
+.btn.primary {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #ecfdf5;
+}
+
+.btn.danger {
+    background: linear-gradient(135deg, #f97316, var(--danger));
+    color: #fef2f2;
+}
+
+/* ---------- Status ---------- */
+
+.status {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    min-height: 1.2em;
+}
+
+/* ---------- Larger screens tweaks ---------- */
+
+@media (min-width: 480px) {
+    .card {
+        padding: 18px 18px 20px;
+    }
+
+    .preview {
+        height: 130px;
+    }
+
+    .buttons {
+        flex-direction: row;
+    }
+
+    .btn {
+        width: 50%;
+    }
+}
+==> main/include/color_storage.h <==
+#pragma once
+#include <stdint.h>
+
+#include "esp_err.h"
+
+esp_err_t color_storage_save(uint8_t r, uint8_t g, uint8_t b);
+esp_err_t color_storage_load(uint8_t* r, uint8_t* g, uint8_t* b);
+
+==> main/include/rgb_led.h <==
+#pragma once
+#include <stdint.h>
+
+void rgb_led_init(void);
+void rgb_led_set(uint8_t r, uint8_t g, uint8_t b);
+
+==> main/include/webserver.h <==
+#pragma once
+
+void start_webserver(void);
+
+==> main/color_storage.c <==
+#include "color_storage.h"
+
+#include "nvs.h"
+
+#define NVS_NAMESPACE "storage"
+#define NVS_KEY_COLOR "rgb"
+
+static uint32_t pack_rgb(uint8_t r, uint8_t g, uint8_t b) {
+  return ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+}
+
+static void unpack_rgb(uint32_t v, uint8_t* r, uint8_t* g, uint8_t* b) {
+  *r = (v >> 16) & 0xFF;
+  *g = (v >> 8) & 0xFF;
+  *b = v & 0xFF;
+}
+
+esp_err_t color_storage_save(uint8_t r, uint8_t g, uint8_t b) {
+  nvs_handle_t h;
+  esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &h);
+  if (err != ESP_OK) return err;
+
+  uint32_t packed = pack_rgb(r, g, b);
+  err = nvs_set_u32(h, NVS_KEY_COLOR, packed);
+  if (err == ESP_OK) err = nvs_commit(h);
+
+  nvs_close(h);
+  return err;
+}
+
+esp_err_t color_storage_load(uint8_t* r, uint8_t* g, uint8_t* b) {
+  nvs_handle_t h;
+  esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &h);
+  if (err != ESP_OK) return err;
+
+  uint32_t packed = 0;
+  err = nvs_get_u32(h, NVS_KEY_COLOR, &packed);
+  nvs_close(h);
+
+  if (err == ESP_OK) {
+    unpack_rgb(packed, r, g, b);
+  }
+  return err;
+}
+
+==> main/main.c <==
+#include <stdint.h>
+#include <string.h>
+
+#include "color_storage.h"
+#include "esp_event.h"
+#include "esp_log.h"
+#include "esp_netif.h"
+#include "esp_system.h"
+#include "esp_wifi.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "nvs_flash.h"
+#include "rgb_led.h"
+#include "webserver.h"
+
+static const char* TAG = "MAIN";
+
+#define WIFI_AP_SSID "ESP32_RGB"
+#define WIFI_AP_PASSWORD "12345678"
+#define WIFI_AP_MAX_CONN 4
+
+static void wifi_init_softap(void) {
+  esp_netif_create_default_wifi_ap();
+
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+  wifi_config_t wifi_config = {
+      .ap = {.ssid = WIFI_AP_SSID,
+             .ssid_len = strlen(WIFI_AP_SSID),
+             .password = WIFI_AP_PASSWORD,
+             .max_connection = WIFI_AP_MAX_CONN,
+             .authmode = WIFI_AUTH_WPA_WPA2_PSK},
+  };
+
+  if (strlen(WIFI_AP_PASSWORD) == 0) wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+
+  ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+  ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+  ESP_ERROR_CHECK(esp_wifi_start());
+
+  ESP_LOGI(TAG, "WiFi AP started: SSID=%s", WIFI_AP_SSID);
+}
+
+void app_main(void) {
+  // NVS
+  esp_err_t ret = nvs_flash_init();
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
+      ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    ESP_ERROR_CHECK(nvs_flash_init());
+  }
+
+  ESP_ERROR_CHECK(esp_netif_init());
+  ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+  rgb_led_init();
+
+  uint8_t r = 0, g = 0, b = 0;
+  if (color_storage_load(&r, &g, &b) == ESP_OK) {
+    rgb_led_set(r, g, b);
+    ESP_LOGI(TAG, "Loaded color: R=%u G=%u B=%u", r, g, b);
+  } else {
+    rgb_led_set(0, 0, 0);
+    ESP_LOGI(TAG, "No saved color");
+  }
+
+  wifi_init_softap();
+  start_webserver();
+
+  while (1) {
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
+
+==> main/rgb_led.c <==
+#include "rgb_led.h"
+
+#include "driver/ledc.h"
+#include "esp_err.h"
+
+#define PIN_R 33
+#define PIN_G 25
+#define PIN_B 26
+
+#define LEDC_MODE LEDC_LOW_SPEED_MODE
+#define LEDC_TIMER LEDC_TIMER_0
+#define LEDC_RES LEDC_TIMER_8_BIT
+#define LEDC_FREQ 5000
+
+void rgb_led_set(uint8_t r, uint8_t g, uint8_t b) {
+  ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_0, r));
+  ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_0));
+
+  ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_1, g));
+  ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_1));
+
+  ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_2, b));
+  ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_2));
+}
+
+void rgb_led_init(void) {
+  ledc_timer_config_t t = {.speed_mode = LEDC_MODE,
+                           .timer_num = LEDC_TIMER,
+                           .duty_resolution = LEDC_RES,
+                           .freq_hz = LEDC_FREQ,
+                           .clk_cfg = LEDC_AUTO_CLK};
+  ESP_ERROR_CHECK(ledc_timer_config(&t));
+
+  ledc_channel_config_t c = {
+      .speed_mode = LEDC_MODE,
+      .timer_sel = LEDC_TIMER,
+      .intr_type = LEDC_INTR_DISABLE,
+      .duty = 0,
+      .hpoint = 0,
+      .flags.output_invert = 1,
+  };
+
+  c.channel = LEDC_CHANNEL_0;
+  c.gpio_num = PIN_R;
+  ESP_ERROR_CHECK(ledc_channel_config(&c));
+  c.channel = LEDC_CHANNEL_1;
+  c.gpio_num = PIN_G;
+  ESP_ERROR_CHECK(ledc_channel_config(&c));
+  c.channel = LEDC_CHANNEL_2;
+  c.gpio_num = PIN_B;
+  ESP_ERROR_CHECK(ledc_channel_config(&c));
+
+  rgb_led_set(0, 0, 0);
+}
+
+==> main/webserver.c <==
+#include "webserver.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "color_storage.h"
+#include "esp_err.h"
+#include "esp_http_server.h"
+#include "esp_log.h"
+#include "rgb_led.h"
+
+static const char* TAG = "WEB";
+
+// EMBED_FILES: data/page.html, data/style.css, data/script.js
+extern const uint8_t _binary_page_html_gz_start[];
+extern const uint8_t _binary_page_html_gz_end[];
+
+extern const uint8_t _binary_style_css_gz_start[];
+extern const uint8_t _binary_style_css_gz_end[];
+
+extern const uint8_t _binary_script_js_gz_start[];
+extern const uint8_t _binary_script_js_gz_end[];
+
+
+static esp_err_t root_handler(httpd_req_t* req) {
+  const uint8_t* data = _binary_page_html_gz_start;
+  size_t size = _binary_page_html_gz_end - _binary_page_html_gz_start;
+  httpd_resp_set_type(req, "text/html; charset=utf-8");
+  httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+  httpd_resp_set_hdr(req, "Cache-Control",
+                     "no-cache, no-store, must-revalidate");
+  httpd_resp_set_hdr(req, "Pragma", "no-cache");
+  httpd_resp_set_hdr(req, "Expires", "0");
+  httpd_resp_send(req, (const char*)data, size);
+  return ESP_OK;
+}
+
+static esp_err_t css_handler(httpd_req_t* req) {
+  const uint8_t* data = _binary_style_css_gz_start;
+  size_t size = _binary_style_css_gz_end - _binary_style_css_gz_start;
+  httpd_resp_set_type(req, "text/css; charset=utf-8");
+  httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+  httpd_resp_send(req, (const char*)data, size);
+  return ESP_OK;
+}
+
+static esp_err_t js_handler(httpd_req_t* req) {
+  const uint8_t* data = _binary_script_js_gz_start;
+  size_t size = _binary_script_js_gz_end - _binary_script_js_gz_start;
+  httpd_resp_set_type(req, "application/javascript; charset=utf-8");
+  httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+  httpd_resp_send(req, (const char*)data, size);
+  return ESP_OK;
+}
+
+static esp_err_t get_handler(httpd_req_t* req) {
+  uint8_t r = 0, g = 0, b = 0;
+  esp_err_t err = color_storage_load(&r, &g, &b);
+  if (err != ESP_OK) {
+    r = g = b = 0;
+  }
+  char buf[64];
+  int len = snprintf(buf, sizeof(buf), "{\"r\":%u,\"g\":%u,\"b\":%u}", r, g, b);
+  httpd_resp_set_type(req, "application/json; charset=utf-8");
+  httpd_resp_send(req, buf, len);
+  return ESP_OK;
+}
+
+static esp_err_t set_handler(httpd_req_t* req) {
+  char query[64];
+  char param[8];
+  int r = 0, g = 0, b = 0;
+  if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
+    if (httpd_query_key_value(query, "r", param, sizeof(param)) == ESP_OK)
+      r = atoi(param);
+    if (httpd_query_key_value(query, "g", param, sizeof(param)) == ESP_OK)
+      g = atoi(param);
+    if (httpd_query_key_value(query, "b", param, sizeof(param)) == ESP_OK)
+      b = atoi(param);
+  }
+  if (r < 0) r = 0;
+  if (r > 255) r = 255;
+  if (g < 0) g = 0;
+  if (g > 255) g = 255;
+  if (b < 0) b = 0;
+  if (b > 255) b = 255;
+  rgb_led_set((uint8_t)r, (uint8_t)g, (uint8_t)b);
+  color_storage_save((uint8_t)r, (uint8_t)g, (uint8_t)b);
+  char resp[64];
+  snprintf(resp, sizeof(resp), "OK R=%d G=%d B=%d", r, g, b);
+  httpd_resp_set_type(req, "text/plain; charset=utf-8");
+  httpd_resp_send(req, resp, strlen(resp));
+  return ESP_OK;
+}
+
+void start_webserver(void) {
+  httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+  httpd_handle_t server = NULL;
+  if (httpd_start(&server, &config) != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to start HTTP server");
+    return;
+  }
+  httpd_uri_t root = {.uri = "/",
+                      .method = HTTP_GET,
+                      .handler = root_handler,
+                      .user_ctx = NULL};
+  httpd_register_uri_handler(server, &root);
+  httpd_uri_t css = {.uri = "/style.css",
+                     .method = HTTP_GET,
+                     .handler = css_handler,
+                     .user_ctx = NULL};
+  httpd_register_uri_handler(server, &css);
+  httpd_uri_t js = {.uri = "/script.js",
+                    .method = HTTP_GET,
+                    .handler = js_handler,
+                    .user_ctx = NULL};
+  httpd_register_uri_handler(server, &js);
+  httpd_uri_t set = {.uri = "/set",
+                     .method = HTTP_GET,
+                     .handler = set_handler,
+                     .user_ctx = NULL};
+  httpd_register_uri_handler(server, &set);
+  httpd_uri_t get = {.uri = "/get",
+                     .method = HTTP_GET,
+                     .handler = get_handler,
+                     .user_ctx = NULL};
+  httpd_register_uri_handler(server, &get);
+  ESP_LOGI(TAG, "HTTP server started");
+}

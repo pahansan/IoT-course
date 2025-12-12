@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = './build/1w_ds18b20.bin'
+elf = './build/1w_ds18b20.elf'

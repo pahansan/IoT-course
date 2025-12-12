@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>RGB LED Controller</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+    <!-- cache-busting with hashes -->
+    <link rel="stylesheet" href="style.css?v=e54f9b30" />
+    <script src="script.js?v=a75ca2b2" defer></script>
+</head>
+
+<body>
+    <div class="page">
+        <div class="card">
+            <header class="card-header">
+                <h1 class="title">RGB LED</h1>
+                <p class="subtitle">Control over Wi-Fi</p>
+            </header>
+
+            <section class="preview-section">
+                <div class="preview-label-row">
+                    <span>Preview</span>
+                    <span id="hex" class="hex">#000000</span>
+                </div>
+                <div id="preview" class="preview"></div>
+            </section>
+
+            <section class="picker-section">
+                <label for="colorPicker" class="picker-label">Color picker</label>
+                <input type="color" id="colorPicker" class="color-input" />
+            </section>
+
+            <section class="sliders">
+                <div class="slider">
+                    <div class="slider-header">
+                        <span>Red</span>
+                        <span id="val-r">0</span>
+                    </div>
+                    <input type="range" id="r" min="0" max="255" value="0">
+                </div>
+
+                <div class="slider">
+                    <div class="slider-header">
+                        <span>Green</span>
+                        <span id="val-g">0</span>
+                    </div>
+                    <input type="range" id="g" min="0" max="255" value="0">
+                </div>
+
+                <div class="slider">
+                    <div class="slider-header">
+                        <span>Blue</span>
+                        <span id="val-b">0</span>
+                    </div>
+                    <input type="range" id="b" min="0" max="255" value="0">
+                </div>
+            </section>
+
+            <section class="buttons">
+                <button id="apply" class="btn primary">Apply</button>
+                <button id="off" class="btn danger">Turn off</button>
+            </section>
+
+            <div id="status" class="status">Ready</div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = './build/i2c_scan_v2.bin'
+elf = './build/i2c_scan_v2.elf'

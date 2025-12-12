@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #define LEDC_TIMER LEDC_TIMER_0
-#define LEDC_MODE LEDC_LOW_SPEED_MODE
+#define LEDC_MODE LEDC_HIGH_SPEED_MODE
 #define LEDC_GPIO_R GPIO_NUM_33
 #define LEDC_CHANNEL_R LEDC_CHANNEL_0
 #define LEDC_GPIO_G GPIO_NUM_25
@@ -36,21 +36,21 @@ void app_main(void) {
                                           .speed_mode = LEDC_MODE,
                                           .hpoint = 0,
                                           .timer_sel = LEDC_TIMER,
-                                          .flags.output_invert = 0};
+                                          .flags.output_invert = 1};
   ledc_channel_config_t ledc_channel_g = {.channel = LEDC_CHANNEL_G,
                                           .duty = 0,
                                           .gpio_num = LEDC_GPIO_G,
                                           .speed_mode = LEDC_MODE,
                                           .hpoint = 0,
                                           .timer_sel = LEDC_TIMER,
-                                          .flags.output_invert = 0};
+                                          .flags.output_invert = 1};
   ledc_channel_config_t ledc_channel_b = {.channel = LEDC_CHANNEL_B,
                                           .duty = 0,
                                           .gpio_num = LEDC_GPIO_B,
                                           .speed_mode = LEDC_MODE,
                                           .hpoint = 0,
                                           .timer_sel = LEDC_TIMER,
-                                          .flags.output_invert = 0};
+                                          .flags.output_invert = 1};
   ledc_channel_config(&ledc_channel_r);
   ledc_channel_config(&ledc_channel_g);
   ledc_channel_config(&ledc_channel_b);
